@@ -4,6 +4,7 @@ namespace App\Entity;
 
 use App\Repository\HouseholdRepository;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: HouseholdRepository::class)]
 class Household
@@ -13,15 +14,22 @@ class Household
     #[ORM\Column]
     private ?int $id = null;
 
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 50)]
     #[ORM\Column(length: 50)]
     private string $reference;
 
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 150)]
     #[ORM\Column(length: 150)]
     private string $ownerName;
 
+    #[Assert\Length(max: 30)]
     #[ORM\Column(length: 30, nullable: true)]
     private ?string $phoneNumber = null;
 
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 30)]
     #[ORM\Column(length: 30)]
     private string $connectionStatus;
 
