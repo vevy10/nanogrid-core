@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Repository\IncidentRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: IncidentRepository::class)]
 class Incident
@@ -14,15 +15,22 @@ class Incident
     #[ORM\Column]
     private ?int $id = null;
 
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 150)]
     #[ORM\Column(length: 150)]
     private string $title;
 
+    #[Assert\NotBlank]
     #[ORM\Column(type: Types::TEXT)]
     private string $description;
 
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 20)]
     #[ORM\Column(length: 20)]
     private string $severity;
 
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 30)]
     #[ORM\Column(length: 30)]
     private string $status;
 
