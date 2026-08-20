@@ -1,0 +1,29 @@
+services:
+  database:
+    image: postgres:16-alpine
+    container_name: nanogrid_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-nanogrid_db}
+      POSTGRES_USER: ${POSTGRES_USER:-symfony}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ChangeMe123!}
+    ports:
+      - "5433:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-symfony} -d ${POSTGRES_DB:-nanogrid_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mailer:
+    image: axllent/mailpit
+    container_name: nanogrid_mailer
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+volumes:
+  db_data:
