@@ -6,6 +6,7 @@ use App\Repository\SiteRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: SiteRepository::class)]
 class Site
@@ -15,15 +16,23 @@ class Site
     #[ORM\Column]
     private ?int $id = null;
 
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 150)]
     #[ORM\Column(length: 150)]
     private string $name;
 
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 50)]
     #[ORM\Column(length: 50, unique: true)]
     private string $code;
 
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 100)]
     #[ORM\Column(length: 100)]
     private string $region;
 
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 30)]
     #[ORM\Column(length: 30)]
     private string $status;
 
@@ -36,23 +45,27 @@ class Site
     #[ORM\Column]
     private \DateTimeImmutable $updatedAt;
 
-    /**
-     * @var Collection<int, Equipment>
-     */
+    /** @var Collection<int, Equipment> */
     #[ORM\OneToMany(targetEntity: Equipment::class, mappedBy: 'site')]
     private Collection $equipment;
 
-    /**
-     * @var Collection<int, Household>
-     */
+    /** @var Collection<int, Household> */
     #[ORM\OneToMany(targetEntity: Household::class, mappedBy: 'site')]
     private Collection $households;
 
-    /**
-     * @var Collection<int, Incident>
-     */
+    /** @var Collection<int, Incident> */
     #[ORM\OneToMany(targetEntity: Incident::class, mappedBy: 'site')]
     private Collection $incidents;
+
+    public function __construct()
+    {
+        $now = new \DateTimeImmutable();
+        $this->createdAt = $now;
+        $this->updatedAt = $now;
+        $this->equipment = new ArrayCollection();
+        $this->households = new ArrayCollection();
+        $this->incidents = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -143,19 +156,7 @@ class Site
         return $this;
     }
 
-    public function __construct()
-    {
-        $now = new \DateTimeImmutable();
-        $this->createdAt = $now;
-        $this->updatedAt = $now;
-        $this->equipment = new ArrayCollection();
-        $this->households = new ArrayCollection();
-        $this->incidents = new ArrayCollection();
-    }
-
-    /**
-     * @return Collection<int, Equipment>
-     */
+    /** @return Collection<int, Equipment> */
     public function getEquipment(): Collection
     {
         return $this->equipment;
@@ -178,9 +179,7 @@ class Site
         return $this;
     }
 
-    /**
-     * @return Collection<int, Household>
-     */
+    /** @return Collection<int, Household> */
     public function getHouseholds(): Collection
     {
         return $this->households;
@@ -203,9 +202,7 @@ class Site
         return $this;
     }
 
-    /**
-     * @return Collection<int, Incident>
-     */
+    /** @return Collection<int, Incident> */
     public function getIncidents(): Collection
     {
         return $this->incidents;
