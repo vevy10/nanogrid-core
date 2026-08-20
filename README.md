@@ -4,23 +4,32 @@ Symfony backend API for managing decentralized nanogrid sites, equipment, househ
 
 ## Overview
 
-This project is a backend-oriented prototype inspired by rural electrification operations. It models the core entities required to supervise decentralized nanogrid deployments:
+This project is a backend-oriented prototype inspired by rural electrification operations. It models the core resources required to supervise decentralized nanogrid deployments and day-to-day field operations:
 
 - `Site`
 - `Equipment`
 - `Household`
 - `Incident`
 
-The current implementation focuses on a clean local development environment, a consistent domain model, and a first set of REST API endpoints for site and equipment management.
+The current implementation focuses on:
+
+- a clean local development environment
+- a consistent domain model
+- Docker-based infrastructure
+- REST API endpoints for core operational resources
+- JSON error handling for API routes
+- functional API tests with PHPUnit
 
 ## Tech Stack
 
 - PHP `8.5`
 - Symfony `8.1`
 - PostgreSQL `16`
-- Doctrine ORM and Doctrine Migrations
+- Doctrine ORM
+- Doctrine Migrations
 - Docker Compose
 - Mailpit
+- PHPUnit
 
 ## Project Structure
 
@@ -28,7 +37,8 @@ The current implementation focuses on a clean local development environment, a c
 - `src/Controller/Api`: REST API controllers
 - `src/Repository`: Doctrine repositories
 - `migrations`: database migrations
-- `docker-compose.yml`: local infrastructure
+- `tests/Api`: functional API tests
+- `docker-compose.yml`: local infrastructure definition
 
 ## Local Setup
 
@@ -120,9 +130,35 @@ Relationship:
 
 Represents a household connected to a site.
 
+Key fields:
+
+- `reference`
+- `ownerName`
+- `phoneNumber`
+- `connectionStatus`
+- `connectedAt`
+
+Relationship:
+
+- many households belong to one site
+
 ### Incident
 
 Represents operational issues reported on a site, optionally linked to specific equipment.
+
+Key fields:
+
+- `title`
+- `description`
+- `severity`
+- `status`
+- `reportedAt`
+- `resolvedAt`
+
+Relationships:
+
+- every incident belongs to one site
+- an incident may optionally be linked to one equipment item
 
 ## Available API Endpoints
 
@@ -139,6 +175,18 @@ Represents operational issues reported on a site, optionally linked to specific 
 - `GET /api/equipment/{id}`
 - `POST /api/equipment`
 - `PUT /api/equipment/{id}`
+
+### Incidents
+
+- `GET /api/incidents`
+- `GET /api/incidents/{id}`
+- `POST /api/incidents`
+
+### Households
+
+- `GET /api/households`
+- `GET /api/households/{id}`
+- `POST /api/households`
 
 ## Example Requests
 
@@ -183,18 +231,71 @@ curl -X POST http://127.0.0.1:8000/api/equipment \
   }'
 ```
 
+### Create Incident
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/incidents \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Battery overheating detected",
+    "description": "Temperature threshold exceeded on battery bank A1.",
+    "severity": "high",
+    "status": "open",
+    "siteId": 1,
+    "equipmentId": 1,
+    "reportedAt": "2026-08-20T10:30:00+00:00"
+  }'
+```
+
+### Create Household
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/households \
+  -H "Content-Type: application/json" \
+  -d '{
+    "reference": "HH-AMB-001",
+    "ownerName": "Jean Rakoto",
+    "phoneNumber": "+261340000001",
+    "connectionStatus": "connected",
+    "connectedAt": "2026-08-15T09:00:00+00:00",
+    "siteId": 1
+  }'
+```
+
+## Testing
+
+Run all tests:
+
+```bash
+php bin/phpunit
+```
+
+Run specific API test suites:
+
+```bash
+php bin/phpunit tests/Api/SiteControllerTest.php
+php bin/phpunit tests/Api/EquipmentControllerTest.php
+php bin/phpunit tests/Api/IncidentControllerTest.php
+php bin/phpunit tests/Api/HouseholdControllerTest.php
+```
+
+The test environment uses a dedicated PostgreSQL test database configured through `.env.test`.
+
 ## Development Notes
 
 - `.env` and `.env.dev` are committed as shared project defaults.
 - `.env.local` is local-only and must not be committed.
+- `.env.test` is used for the dedicated test environment.
 - PostgreSQL is exposed on port `5433` to avoid conflicts with a local PostgreSQL instance on `5432`.
-- The current API returns handcrafted JSON responses to keep the contract explicit and avoid exposing Doctrine entities directly.
+- API routes return JSON responses, including JSON-formatted error responses for API exceptions.
+- The current API uses handcrafted JSON normalization to keep the response contract explicit and avoid exposing Doctrine entities directly.
 
 ## Next Steps
 
-- add `Household` and `Incident` API endpoints
-- improve API error formatting
+- add `PUT /api/incidents/{id}`
+- add `PUT /api/households/{id}`
+- automate `updatedAt` updates with Doctrine lifecycle hooks or subscribers
+- improve API error formatting consistency
 - add fixtures or dedicated seed commands
 - introduce DTOs or dedicated response mappers
-- add automated tests
-- prepare production-oriented deployment and CI workflow
+- prepare CI workflow for automated test execution
