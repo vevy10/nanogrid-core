@@ -2,6 +2,7 @@
 
 namespace App\EventListener;
 
+use App\Exception\ApiValidationException;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
@@ -23,10 +24,18 @@ final class ApiExceptionListener
             $statusCode = $exception->getStatusCode();
         }
 
+        if ($exception instanceof ApiValidationException) {
+            $event->setResponse(new JsonResponse([
+                'errors' => $exception->getErrors(),
+            ], $statusCode));
+
+            return;
+        }
+
         $message = match ($statusCode) {
             404 => 'Resource not found.',
             500 => 'Internal server error.',
-            default => 'Request failed.',
+            default => $exception->getMessage() !== '' ? $exception->getMessage() : 'Request failed.',
         };
 
         $event->setResponse(new JsonResponse([
