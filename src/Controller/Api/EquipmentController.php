@@ -40,4 +40,10 @@ final class EquipmentController extends AbstractController
             ],
         ];
     }
+
+    #[Route('/{id}', name: 'show', methods: ['GET'])]
+    public function show(Equipment $equipment): JsonResponse
+    {
+        return $this->json($this->normalizeEquipment($equipment));
+    }
 }
