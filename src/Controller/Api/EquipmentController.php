@@ -125,4 +125,90 @@ final class EquipmentController extends AbstractController
 
         return $this->json($this->normalizeEquipment($equipment), 201);
     }
+
+    #[Route('/{id}', name: 'update', methods: ['PUT'])]
+    public function update(
+        Request $request,
+        Equipment $equipment,
+        EntityManagerInterface $entityManager,
+        ValidatorInterface $validator,
+        SiteRepository $siteRepository
+    ): JsonResponse {
+        $payload = json_decode($request->getContent(), true);
+
+        if (!is_array($payload)) {
+            return $this->json(['error' => 'Invalid JSON payload.'], 400);
+        }
+
+        $equipment->setName($payload['name'] ?? $equipment->getName());
+        $equipment->setSerialNumber($payload['serialNumber'] ?? $equipment->getSerialNumber());
+        $equipment->setType($payload['type'] ?? $equipment->getType());
+        $equipment->setStatus($payload['status'] ?? $equipment->getStatus());
+
+        if (array_key_exists('installedAt', $payload)) {
+            if ($payload['installedAt'] === null || $payload['installedAt'] === '') {
+                $equipment->setInstalledAt(null);
+            } else {
+                try {
+                    $equipment->setInstalledAt(new \DateTimeImmutable($payload['installedAt']));
+                } catch (\Exception) {
+                    return $this->json(['error' => 'Invalid installedAt datetime format.'], 400);
+                }
+            }
+        }
+
+        if (array_key_exists('lastSeenAt', $payload)) {
+            if ($payload['lastSeenAt'] === null || $payload['lastSeenAt'] === '') {
+                $equipment->setLastSeenAt(null);
+            } else {
+                try {
+                    $equipment->setLastSeenAt(new \DateTimeImmutable($payload['lastSeenAt']));
+                } catch (\Exception) {
+                    return $this->json(['error' => 'Invalid lastSeenAt datetime format.'], 400);
+                }
+            }
+        }
+
+        if (array_key_exists('siteId', $payload)) {
+            $siteId = $payload['siteId'];
+
+            if (!is_int($siteId) && !ctype_digit((string) $siteId)) {
+                return $this->json([
+                    'errors' => [[
+                        'field' => 'siteId',
+                        'message' => 'A valid siteId is required.',
+                    ]],
+                ], 422);
+            }
+
+            $site = $siteRepository->find((int) $siteId);
+            if ($site === null) {
+                return $this->json([
+                    'errors' => [[
+                        'field' => 'siteId',
+                        'message' => 'Site not found.',
+                    ]],
+                ], 422);
+            }
+
+            $equipment->setSite($site);
+        }
+
+        $errors = $validator->validate($equipment);
+        if (count($errors) > 0) {
+            $violations = [];
+            foreach ($errors as $error) {
+                $violations[] = [
+                    'field' => $error->getPropertyPath(),
+                    'message' => $error->getMessage(),
+                ];
+            }
+
+            return $this->json(['errors' => $violations], 422);
+        }
+
+        $entityManager->flush();
+
+        return $this->json($this->normalizeEquipment($equipment));
+    }
 }
