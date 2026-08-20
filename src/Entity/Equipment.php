@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\EquipmentRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: EquipmentRepository::class)]
@@ -34,6 +36,17 @@ class Equipment
     #[ORM\ManyToOne(inversedBy: 'equipment')]
     #[ORM\JoinColumn(nullable: false)]
     private Site $site;
+
+    /**
+     * @var Collection<int, Incident>
+     */
+    #[ORM\OneToMany(targetEntity: Incident::class, mappedBy: 'equipment')]
+    private Collection $incidents;
+
+    public function __construct()
+    {
+        $this->incidents = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -120,6 +133,36 @@ class Equipment
     public function setSite(Site $site): static
     {
         $this->site = $site;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Incident>
+     */
+    public function getIncidents(): Collection
+    {
+        return $this->incidents;
+    }
+
+    public function addIncident(Incident $incident): static
+    {
+        if (!$this->incidents->contains($incident)) {
+            $this->incidents->add($incident);
+            $incident->setEquipment($this);
+        }
+
+        return $this;
+    }
+
+    public function removeIncident(Incident $incident): static
+    {
+        if ($this->incidents->removeElement($incident)) {
+            // set the owning side to null (unless already changed)
+            if ($incident->getEquipment() === $this) {
+                $incident->setEquipment(null);
+            }
+        }
 
         return $this;
     }
