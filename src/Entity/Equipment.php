@@ -6,6 +6,7 @@ use App\Repository\EquipmentRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: EquipmentRepository::class)]
 class Equipment
@@ -16,15 +17,23 @@ class Equipment
     private ?int $id = null;
 
     #[ORM\Column(length: 150)]
+    #[Assert\Length(max: 150)]
+    #[Assert\NotBlank]
     private string $name;
 
     #[ORM\Column(length: 100)]
+    #[Assert\Length(max: 100)]
+    #[Assert\NotBlank]
     private string $serialNumber;
 
     #[ORM\Column(length: 50)]
+    #[Assert\Length(max: 50)]
+    #[Assert\NotBlank]
     private string $type;
 
     #[ORM\Column(length: 30)]
+    #[Assert\Length(max: 30)]
+    #[Assert\NotBlank]
     private string $status;
 
     #[ORM\Column(nullable: true)]
