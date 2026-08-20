@@ -42,6 +42,12 @@ class Site
     #[ORM\OneToMany(targetEntity: Equipment::class, mappedBy: 'site')]
     private Collection $equipment;
 
+    /**
+     * @var Collection<int, Household>
+     */
+    #[ORM\OneToMany(targetEntity: Household::class, mappedBy: 'site')]
+    private Collection $households;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -137,6 +143,7 @@ class Site
         $this->createdAt = $now;
         $this->updatedAt = $now;
         $this->equipment = new ArrayCollection();
+        $this->households = new ArrayCollection();
     }
 
     /**
@@ -160,6 +167,31 @@ class Site
     public function removeEquipment(Equipment $equipment): static
     {
         $this->equipment->removeElement($equipment);
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Household>
+     */
+    public function getHouseholds(): Collection
+    {
+        return $this->households;
+    }
+
+    public function addHousehold(Household $household): static
+    {
+        if (!$this->households->contains($household)) {
+            $this->households->add($household);
+            $household->setSite($this);
+        }
+
+        return $this;
+    }
+
+    public function removeHousehold(Household $household): static
+    {
+        $this->households->removeElement($household);
 
         return $this;
     }
