@@ -25,6 +25,14 @@ security:
         - { path: ^/api/register, roles: PUBLIC_ACCESS }
         - { path: ^/api/login, roles: PUBLIC_ACCESS }
         - { path: ^/api/me, roles: ROLE_USER }
+        - { path: ^/api/sites$, methods: [POST], roles: ROLE_USER }
+        - { path: ^/api/sites/\d+$, methods: [PUT], roles: ROLE_USER }
+        - { path: ^/api/equipment$, methods: [POST], roles: ROLE_USER }
+        - { path: ^/api/equipment/\d+$, methods: [PUT], roles: ROLE_USER }
+        - { path: ^/api/households$, methods: [POST], roles: ROLE_USER }
+        - { path: ^/api/incidents$, methods: [POST], roles: ROLE_USER }
+        - { path: ^/api/site-contracts$, methods: [POST], roles: ROLE_USER }
+        - { path: ^/api/site-contracts/\d+$, methods: [PUT], roles: ROLE_USER }
 
 when@test:
     security:
