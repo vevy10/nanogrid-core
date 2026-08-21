@@ -142,6 +142,115 @@ final class SiteContractController extends AbstractController
         return $this->json($this->normalizeContract($siteContract), 201);
     }
 
+    #[Route('/{id}', name: 'update', methods: ['PUT'])]
+    public function update(
+        SiteContract $siteContract,
+        Request $request,
+        EntityManagerInterface $entityManager,
+        ValidatorInterface $validator,
+        SiteRepository $siteRepository,
+        ContractPlanRepository $contractPlanRepository
+    ): JsonResponse {
+        $payload = json_decode($request->getContent(), true);
+
+        if (!is_array($payload)) {
+            return $this->json(['error' => 'Invalid JSON payload.'], 400);
+        }
+
+        if (array_key_exists('siteId', $payload)) {
+            $siteId = $payload['siteId'];
+
+            if (!is_int($siteId) && !ctype_digit((string) $siteId)) {
+                return $this->json([
+                    'errors' => [[
+                        'field' => 'siteId',
+                        'message' => 'A valid siteId is required.',
+                    ]],
+                ], 422);
+            }
+
+            $site = $siteRepository->find((int) $siteId);
+            if ($site === null) {
+                return $this->json([
+                    'errors' => [[
+                        'field' => 'siteId',
+                        'message' => 'Site not found.',
+                    ]],
+                ], 422);
+            }
+
+            $siteContract->setSite($site);
+        }
+
+        if (array_key_exists('contractPlanId', $payload)) {
+            $contractPlanId = $payload['contractPlanId'];
+
+            if (!is_int($contractPlanId) && !ctype_digit((string) $contractPlanId)) {
+                return $this->json([
+                    'errors' => [[
+                        'field' => 'contractPlanId',
+                        'message' => 'A valid contractPlanId is required.',
+                    ]],
+                ], 422);
+            }
+
+            $contractPlan = $contractPlanRepository->find((int) $contractPlanId);
+            if ($contractPlan === null) {
+                return $this->json([
+                    'errors' => [[
+                        'field' => 'contractPlanId',
+                        'message' => 'Contract plan not found.',
+                    ]],
+                ], 422);
+            }
+
+            $siteContract->setContractPlan($contractPlan);
+        }
+
+        if (array_key_exists('status', $payload)) {
+            $siteContract->setStatus((string) $payload['status']);
+        }
+
+        if (array_key_exists('startDate', $payload)) {
+            try {
+                $siteContract->setStartDate(new \DateTimeImmutable($payload['startDate']));
+            } catch (\Exception) {
+                return $this->json(['error' => 'Invalid startDate datetime format.'], 400);
+            }
+        }
+
+        if (array_key_exists('endDate', $payload)) {
+            if ($payload['endDate'] === null || $payload['endDate'] === '') {
+                $siteContract->setEndDate(null);
+            } else {
+                try {
+                    $siteContract->setEndDate(new \DateTimeImmutable($payload['endDate']));
+                } catch (\Exception) {
+                    return $this->json(['error' => 'Invalid endDate datetime format.'], 400);
+                }
+            }
+        }
+
+        $siteContract->setUpdatedAt(new \DateTimeImmutable());
+
+        $errors = $validator->validate($siteContract);
+        if (count($errors) > 0) {
+            $violations = [];
+            foreach ($errors as $error) {
+                $violations[] = [
+                    'field' => $error->getPropertyPath(),
+                    'message' => $error->getMessage(),
+                ];
+            }
+
+            return $this->json(['errors' => $violations], 422);
+        }
+
+        $entityManager->flush();
+
+        return $this->json($this->normalizeContract($siteContract));
+    }
+
     private function normalizeContract(SiteContract $contract): array
     {
         return [
