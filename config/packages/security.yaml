@@ -20,10 +20,13 @@ security:
                 check_path: /api/login
                 username_path: email
                 password_path: password
+            logout:
+                path: /api/logout
 
     access_control:
         - { path: ^/api/register, roles: PUBLIC_ACCESS }
         - { path: ^/api/login, roles: PUBLIC_ACCESS }
+        - { path: ^/api/logout, roles: ROLE_USER }
         - { path: ^/api/me, roles: ROLE_USER }
         - { path: ^/api/sites$, methods: [POST], roles: ROLE_USER }
         - { path: ^/api/sites/\d+$, methods: [PUT], roles: ROLE_USER }
