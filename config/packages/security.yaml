@@ -16,9 +16,15 @@ security:
         main:
             lazy: true
             provider: app_user_provider
+            json_login:
+                check_path: /api/login
+                username_path: email
+                password_path: password
 
     access_control:
-        # - { path: ^/admin, roles: ROLE_ADMIN }
+        - { path: ^/api/register, roles: PUBLIC_ACCESS }
+        - { path: ^/api/login, roles: PUBLIC_ACCESS }
+        - { path: ^/api/me, roles: ROLE_USER }
 
 when@test:
     security:
