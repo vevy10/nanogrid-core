@@ -251,6 +251,27 @@ final class SiteContractController extends AbstractController
         return $this->json($this->normalizeContract($siteContract));
     }
 
+    private function isContractActive(SiteContract $contract): bool
+    {
+        $now = new \DateTimeImmutable();
+
+        if ($contract->getStatus() !== 'active') {
+            return false;
+        }
+
+        if ($contract->getStartDate() > $now) {
+            return false;
+        }
+
+        $endDate = $contract->getEndDate();
+
+        if ($endDate !== null && $endDate < $now) {
+            return false;
+        }
+
+        return true;
+    }
+
     private function normalizeContract(SiteContract $contract): array
     {
         return [
@@ -258,6 +279,7 @@ final class SiteContractController extends AbstractController
             'startDate' => $contract->getStartDate()->format(DATE_ATOM),
             'endDate' => $contract->getEndDate()?->format(DATE_ATOM),
             'status' => $contract->getStatus(),
+            'isActive' => $this->isContractActive($contract),
             'createdAt' => $contract->getCreatedAt()->format(DATE_ATOM),
             'updatedAt' => $contract->getUpdatedAt()->format(DATE_ATOM),
             'site' => [
