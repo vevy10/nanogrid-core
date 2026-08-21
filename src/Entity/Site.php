@@ -57,6 +57,12 @@ class Site
     #[ORM\OneToMany(targetEntity: Incident::class, mappedBy: 'site')]
     private Collection $incidents;
 
+    /**
+     * @var Collection<int, SiteContract>
+     */
+    #[ORM\OneToMany(targetEntity: SiteContract::class, mappedBy: 'site')]
+    private Collection $siteContracts;
+
     public function __construct()
     {
         $now = new \DateTimeImmutable();
@@ -65,6 +71,7 @@ class Site
         $this->equipment = new ArrayCollection();
         $this->households = new ArrayCollection();
         $this->incidents = new ArrayCollection();
+        $this->siteContracts = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -221,6 +228,31 @@ class Site
     public function removeIncident(Incident $incident): static
     {
         $this->incidents->removeElement($incident);
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, SiteContract>
+     */
+    public function getSiteContracts(): Collection
+    {
+        return $this->siteContracts;
+    }
+
+    public function addSiteContract(SiteContract $siteContract): static
+    {
+        if (!$this->siteContracts->contains($siteContract)) {
+            $this->siteContracts->add($siteContract);
+            $siteContract->setSite($this);
+        }
+
+        return $this;
+    }
+
+    public function removeSiteContract(SiteContract $siteContract): static
+    {
+        $this->siteContracts->removeElement($siteContract);
 
         return $this;
     }

@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\ContractPlanRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 
@@ -56,11 +58,18 @@ class ContractPlan
     #[ORM\Column]
     private \DateTimeImmutable $updatedAt;
 
+    /**
+     * @var Collection<int, SiteContract>
+     */
+    #[ORM\OneToMany(targetEntity: SiteContract::class, mappedBy: 'contractPlan')]
+    private Collection $siteContracts;
+
     public function __construct()
     {
         $now = new \DateTimeImmutable();
         $this->createdAt = $now;
         $this->updatedAt = $now;
+        $this->siteContracts = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -208,6 +217,31 @@ class ContractPlan
     public function setUpdatedAt(\DateTimeImmutable $updatedAt): static
     {
         $this->updatedAt = $updatedAt;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, SiteContract>
+     */
+    public function getSiteContracts(): Collection
+    {
+        return $this->siteContracts;
+    }
+
+    public function addSiteContract(SiteContract $siteContract): static
+    {
+        if (!$this->siteContracts->contains($siteContract)) {
+            $this->siteContracts->add($siteContract);
+            $siteContract->setContractPlan($this);
+        }
+
+        return $this;
+    }
+
+    public function removeSiteContract(SiteContract $siteContract): static
+    {
+        $this->siteContracts->removeElement($siteContract);
 
         return $this;
     }
