@@ -1,107 +1,115 @@
 # Nanogrid Core
 
-Symfony backend API for managing decentralized nanogrid sites, equipment, households, and operational incidents.
+Backend Symfony pour piloter des sites nanogrid, leurs équipements, les foyers raccordés, les incidents opérationnels, les contrats de maintenance et les comptes utilisateurs.
 
-## Overview
+## Vue d'ensemble
 
-This project is a backend-oriented prototype inspired by rural electrification operations. It models the core resources required to supervise decentralized nanogrid deployments and day-to-day field operations:
+Ce projet modélise les ressources principales d'une exploitation nanogrid orientée terrain :
 
 - `Site`
 - `Equipment`
 - `Household`
 - `Incident`
+- `ContractPlan`
+- `SiteContract`
+- `User`
 
-The current implementation focuses on:
+Le backend couvre actuellement :
 
-- a clean local development environment
-- a consistent domain model
-- Docker-based infrastructure
-- REST API endpoints for core operational resources
-- JSON error handling for API routes
-- functional API tests with PHPUnit
+- une infrastructure locale Docker avec PostgreSQL et Mailpit
+- un modèle de domaine Doctrine cohérent
+- des APIs JSON pour les ressources métier
+- une gestion JSON des erreurs API
+- une authentification par session
+- la protection des routes d'écriture
+- des tests fonctionnels PHPUnit sur les APIs principales
 
-## Tech Stack
+## Stack technique
 
 - PHP `8.5`
 - Symfony `8.1`
 - PostgreSQL `16`
 - Doctrine ORM
 - Doctrine Migrations
+- Symfony Security
 - Docker Compose
 - Mailpit
 - PHPUnit
 
-## Project Structure
+## Structure du projet
 
-- `src/Entity`: Doctrine domain entities
-- `src/Controller/Api`: REST API controllers
-- `src/Repository`: Doctrine repositories
-- `migrations`: database migrations
-- `tests/Api`: functional API tests
-- `docker-compose.yml`: local infrastructure definition
+- `src/Entity` : entités Doctrine
+- `src/Controller/Api` : contrôleurs HTTP API
+- `src/Service/Api` : logique applicative et normalisation JSON
+- `src/Repository` : repositories Doctrine
+- `src/EventListener` : gestion des erreurs API
+- `src/EventSubscriber` : événements applicatifs
+- `migrations` : migrations SQL versionnées
+- `tests/Api` : tests fonctionnels API
+- `docker-compose.yml` : infrastructure locale
 
-## Local Setup
+## Installation locale
 
-### Requirements
+### Prérequis
 
 - Docker Desktop
 - PHP `8.5`
 - Composer
 - Symfony CLI
 
-### Environment
+### Variables d'environnement
 
-Create a local environment override in `.env.local`:
+Créer `.env.local` :
 
 ```env
 DATABASE_URL="postgresql://symfony:ChangeMe123!@127.0.0.1:5433/nanogrid_db?serverVersion=16&charset=utf8"
 MAILER_DSN="smtp://127.0.0.1:1025"
 ```
 
-### Start Infrastructure
+### Démarrage de l'infrastructure
 
 ```bash
 docker compose up -d
 docker compose ps
 ```
 
-Services:
+Services disponibles :
 
-- PostgreSQL: `127.0.0.1:5433`
-- Mailpit SMTP: `127.0.0.1:1025`
-- Mailpit UI: `http://127.0.0.1:8025`
+- PostgreSQL : `127.0.0.1:5433`
+- Mailpit SMTP : `127.0.0.1:1025`
+- Mailpit UI : `http://127.0.0.1:8025`
 
-### Install Dependencies
+### Installation des dépendances
 
 ```bash
 composer install
 ```
 
-### Run Migrations
+### Migration de la base
 
 ```bash
 php bin/console doctrine:migrations:migrate
 ```
 
-### Start the API
+### Lancement de l'API
 
 ```bash
 symfony server:start -d
 ```
 
-API base URL:
+Base URL locale :
 
 ```text
 http://127.0.0.1:8000
 ```
 
-## Current Domain Model
+## Modèle métier actuel
 
 ### Site
 
-Represents a nanogrid deployment site.
+Représente un site nanogrid.
 
-Key fields:
+Champs clés :
 
 - `name`
 - `code`
@@ -109,11 +117,22 @@ Key fields:
 - `status`
 - `commissionedAt`
 
+Relations :
+
+- un site possède plusieurs équipements
+- un site possède plusieurs foyers
+- un site possède plusieurs incidents
+- un site peut avoir plusieurs contrats dans le temps
+
+Note :
+
+- la réponse API des sites expose `activeContract` quand un contrat actif existe
+
 ### Equipment
 
-Represents technical assets installed on a site.
+Représente un équipement technique installé sur un site.
 
-Key fields:
+Champs clés :
 
 - `name`
 - `serialNumber`
@@ -122,15 +141,15 @@ Key fields:
 - `installedAt`
 - `lastSeenAt`
 
-Relationship:
+Relation :
 
-- many equipment items belong to one site
+- plusieurs équipements appartiennent à un site
 
 ### Household
 
-Represents a household connected to a site.
+Représente un foyer raccordé à un site.
 
-Key fields:
+Champs clés :
 
 - `reference`
 - `ownerName`
@@ -138,15 +157,15 @@ Key fields:
 - `connectionStatus`
 - `connectedAt`
 
-Relationship:
+Relation :
 
-- many households belong to one site
+- plusieurs foyers appartiennent à un site
 
 ### Incident
 
-Represents operational issues reported on a site, optionally linked to specific equipment.
+Représente un incident métier ou technique.
 
-Key fields:
+Champs clés :
 
 - `title`
 - `description`
@@ -155,12 +174,106 @@ Key fields:
 - `reportedAt`
 - `resolvedAt`
 
-Relationships:
+Relations :
 
-- every incident belongs to one site
-- an incident may optionally be linked to one equipment item
+- chaque incident appartient à un site
+- un incident peut être lié à un équipement
 
-## Available API Endpoints
+### ContractPlan
+
+Représente une offre de maintenance.
+
+Champs clés :
+
+- `name`
+- `code`
+- `annualPrice`
+- `freePreventiveVisitsPerYear`
+- `additionalVisitCost`
+- `curativeInterventionCost`
+- `consumableReplacementCost`
+- `annualConsumableCoverageLimit`
+- `phoneSupportIncluded`
+- `status`
+
+Exemples actuels :
+
+- `NO_CONTRACT`
+- `STANDARD`
+- `PREMIUM`
+
+### SiteContract
+
+Représente la souscription d'un site à une offre de maintenance.
+
+Champs clés :
+
+- `startDate`
+- `endDate`
+- `status`
+
+Relations :
+
+- un contrat est lié à un `Site`
+- un contrat est lié à un `ContractPlan`
+
+Règle métier exposée :
+
+- `isActive` est calculé selon le statut et la période du contrat
+
+### User
+
+Représente un utilisateur applicatif.
+
+Champs clés :
+
+- `email`
+- `password`
+- `roles`
+- `fullName`
+- `status`
+
+Comportement :
+
+- mot de passe hashé par Symfony
+- authentification par session
+
+## Authentification et sécurité
+
+Le backend utilise actuellement une authentification par session.
+
+Endpoints d'authentification :
+
+- `POST /api/register`
+- `POST /api/login`
+- `GET /api/me`
+- `POST /api/logout`
+
+Règles actuelles :
+
+- les routes `GET` restent publiques
+- les routes `POST` et `PUT` principales sont protégées par `ROLE_USER`
+- l'utilisateur doit se connecter avant d'appeler les routes d'écriture
+
+Routes protégées actuellement :
+
+- `POST /api/sites`
+- `PUT /api/sites/{id}`
+- `POST /api/equipment`
+- `PUT /api/equipment/{id}`
+- `POST /api/households`
+- `POST /api/incidents`
+- `POST /api/site-contracts`
+- `PUT /api/site-contracts/{id}`
+
+## Endpoints disponibles
+
+### Auth
+
+- `POST /api/register`
+- `POST /api/login`
+- `GET /api/me`
+- `POST /api/logout`
 
 ### Sites
 
@@ -176,24 +289,71 @@ Relationships:
 - `POST /api/equipment`
 - `PUT /api/equipment/{id}`
 
-### Incidents
-
-- `GET /api/incidents`
-- `GET /api/incidents/{id}`
-- `POST /api/incidents`
-
 ### Households
 
 - `GET /api/households`
 - `GET /api/households/{id}`
 - `POST /api/households`
 
-## Example Requests
+### Incidents
 
-### Create a Site
+- `GET /api/incidents`
+- `GET /api/incidents/{id}`
+- `POST /api/incidents`
+
+### Contract Plans
+
+- `GET /api/contract-plans`
+- `GET /api/contract-plans/{id}`
+
+### Site Contracts
+
+- `GET /api/site-contracts`
+- `GET /api/site-contracts/{id}`
+- `POST /api/site-contracts`
+- `PUT /api/site-contracts/{id}`
+
+## Exemples de requêtes
+
+### Register
 
 ```bash
-curl -X POST http://127.0.0.1:8000/api/sites \
+curl -X POST http://127.0.0.1:8000/api/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@nanogrid.local",
+    "password": "ChangeMe123!",
+    "fullName": "Admin Nanogrid"
+  }'
+```
+
+### Login
+
+```bash
+curl -c var/cookies.txt -X POST http://127.0.0.1:8000/api/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@nanogrid.local",
+    "password": "ChangeMe123!"
+  }'
+```
+
+### Me
+
+```bash
+curl -b var/cookies.txt http://127.0.0.1:8000/api/me
+```
+
+### Logout
+
+```bash
+curl -b var/cookies.txt -X POST http://127.0.0.1:8000/api/logout
+```
+
+### Créer un site
+
+```bash
+curl -b var/cookies.txt -X POST http://127.0.0.1:8000/api/sites \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Ambanja Sud 04",
@@ -204,21 +364,10 @@ curl -X POST http://127.0.0.1:8000/api/sites \
   }'
 ```
 
-### Update a Site
+### Créer un équipement
 
 ```bash
-curl -X PUT http://127.0.0.1:8000/api/sites/1 \
-  -H "Content-Type: application/json" \
-  -d '{
-    "status": "maintenance",
-    "region": "Sava"
-  }'
-```
-
-### Create Equipment
-
-```bash
-curl -X POST http://127.0.0.1:8000/api/equipment \
+curl -b var/cookies.txt -X POST http://127.0.0.1:8000/api/equipment \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Distribution Panel D4",
@@ -231,10 +380,10 @@ curl -X POST http://127.0.0.1:8000/api/equipment \
   }'
 ```
 
-### Create Incident
+### Créer un incident
 
 ```bash
-curl -X POST http://127.0.0.1:8000/api/incidents \
+curl -b var/cookies.txt -X POST http://127.0.0.1:8000/api/incidents \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Battery overheating detected",
@@ -247,30 +396,58 @@ curl -X POST http://127.0.0.1:8000/api/incidents \
   }'
 ```
 
-### Create Household
+### Créer un contrat site
 
 ```bash
-curl -X POST http://127.0.0.1:8000/api/households \
+curl -b var/cookies.txt -X POST http://127.0.0.1:8000/api/site-contracts \
   -H "Content-Type: application/json" \
   -d '{
-    "reference": "HH-AMB-001",
-    "ownerName": "Jean Rakoto",
-    "phoneNumber": "+261340000001",
-    "connectionStatus": "connected",
-    "connectedAt": "2026-08-15T09:00:00+00:00",
-    "siteId": 1
+    "siteId": 2,
+    "contractPlanId": 3,
+    "startDate": "2026-09-01T00:00:00+00:00",
+    "endDate": "2027-08-31T23:59:59+00:00",
+    "status": "active"
   }'
 ```
 
-## Testing
+## Postman
 
-Run all tests:
+Collection recommandée :
+
+- `AUTH`
+- `SITES`
+- `EQUIPMENT`
+- `HOUSEHOLDS`
+- `INCIDENTS`
+- `CONTRACT PLANS`
+- `SITE CONTRACTS`
+
+Variable d'environnement :
+
+- `base_url = http://127.0.0.1:8000`
+
+Ordre de test recommandé :
+
+1. `AUTH / POST - Login`
+2. `AUTH / GET - Me`
+3. requêtes `GET`
+4. requêtes `POST` et `PUT`
+5. `AUTH / POST - Logout`
+
+Important :
+
+- les cookies doivent être activés dans Postman
+- les requêtes d'écriture nécessitent une session active
+
+## Tests
+
+Exécuter toute la suite :
 
 ```bash
 php bin/phpunit
 ```
 
-Run specific API test suites:
+Suites API disponibles :
 
 ```bash
 php bin/phpunit tests/Api/SiteControllerTest.php
@@ -279,23 +456,25 @@ php bin/phpunit tests/Api/IncidentControllerTest.php
 php bin/phpunit tests/Api/HouseholdControllerTest.php
 ```
 
-The test environment uses a dedicated PostgreSQL test database configured through `.env.test`.
+Le projet utilise une base de test dédiée via `.env.test`.
 
-## Development Notes
+## Notes de développement
 
-- `.env` and `.env.dev` are committed as shared project defaults.
-- `.env.local` is local-only and must not be committed.
-- `.env.test` is used for the dedicated test environment.
-- PostgreSQL is exposed on port `5433` to avoid conflicts with a local PostgreSQL instance on `5432`.
-- API routes return JSON responses, including JSON-formatted error responses for API exceptions.
-- The current API uses handcrafted JSON normalization to keep the response contract explicit and avoid exposing Doctrine entities directly.
+- `.env` et `.env.dev` sont versionnés comme configuration partagée
+- `.env.local` reste local et ne doit pas être commit
+- `.env.test` est utilisé pour l'environnement de test
+- PostgreSQL est exposé sur `5433` pour éviter les conflits avec un PostgreSQL local sur `5432`
+- les réponses API sont explicitement normalisées dans les services applicatifs
+- les erreurs API sont renvoyées en JSON
+- la date métier de référence pendant les derniers tests manuels était le `21 août 2026`
 
-## Next Steps
+## Prochaines améliorations possibles
 
-- add `PUT /api/incidents/{id}`
-- add `PUT /api/households/{id}`
-- automate `updatedAt` updates with Doctrine lifecycle hooks or subscribers
-- improve API error formatting consistency
-- add fixtures or dedicated seed commands
-- introduce DTOs or dedicated response mappers
-- prepare CI workflow for automated test execution
+- ajouter `PUT /api/incidents/{id}`
+- ajouter `PUT /api/households/{id}`
+- ajouter des tests fonctionnels pour `register`, `login`, `logout` et `me`
+- introduire `ROLE_ADMIN`
+- restreindre certaines routes à l'administration
+- ajouter un endpoint métier dédié à la couverture contractuelle d'un site
+- ajouter des fixtures ou commandes de seed
+- préparer une CI pour lancer les tests automatiquement
