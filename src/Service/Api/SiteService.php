@@ -45,6 +45,7 @@ final class SiteService
             'commissionedAt' => $site->getCommissionedAt()?->format(\DATE_ATOM),
             'createdAt' => $site->getCreatedAt()->format(\DATE_ATOM),
             'updatedAt' => $site->getUpdatedAt()->format(\DATE_ATOM),
+            'activeContract' => $this->normalizeActiveContract($site),
         ];
     }
 
@@ -132,5 +133,53 @@ final class SiteService
         } catch (\Exception) {
             throw new BadRequestHttpException(sprintf('Invalid %s datetime format.', $field));
         }
+    }
+
+        /**
+     * @return array<string, mixed>|null
+     */
+    private function normalizeActiveContract(Site $site): ?array
+    {
+        foreach ($site->getSiteContracts() as $siteContract) {
+            if (!$this->isContractActive($siteContract)) {
+                continue;
+            }
+
+            return [
+                'id' => $siteContract->getId(),
+                'status' => $siteContract->getStatus(),
+                'startDate' => $siteContract->getStartDate()->format(\DATE_ATOM),
+                'endDate' => $siteContract->getEndDate()?->format(\DATE_ATOM),
+                'plan' => [
+                    'id' => $siteContract->getContractPlan()->getId(),
+                    'code' => $siteContract->getContractPlan()->getCode(),
+                    'name' => $siteContract->getContractPlan()->getName(),
+                    'annualPrice' => $siteContract->getContractPlan()->getAnnualPrice(),
+                ],
+            ];
+        }
+
+        return null;
+    }
+
+    private function isContractActive(\App\Entity\SiteContract $siteContract): bool
+    {
+        $now = new \DateTimeImmutable();
+
+        if ($siteContract->getStatus() !== 'active') {
+            return false;
+        }
+
+        if ($siteContract->getStartDate() > $now) {
+            return false;
+        }
+
+        $endDate = $siteContract->getEndDate();
+
+        if ($endDate !== null && $endDate < $now) {
+            return false;
+        }
+
+        return true;
     }
 }
